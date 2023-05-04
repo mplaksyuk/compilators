@@ -72,9 +72,12 @@ Token Lexer::number()
         }
 
         lex += get();
-    } 
+    }
+    if(point_touched) {
+        return Token(Token::Kind::FLOAT, lex);
+    }
 
-    return Token(Token::Kind::NUMBER, lex);
+    return Token(Token::Kind::INT, lex);
 }
 Token Lexer::character() 
 {
@@ -173,6 +176,10 @@ Token Lexer::left_paren_or_comment() {
         for(char curr_char = get(); nested_comment > 0; curr_char = get()) {
             if(prev_char == '(' && curr_char == '*') nested_comment++;
             if(prev_char == '*' && curr_char == ')') nested_comment--;
+
+            if(curr_char == '\xff') {
+                return Token(Token::Kind::UNEXPECTED_SYMBOL, lex);
+            }
 
             lex += curr_char;
             prev_char = curr_char;
