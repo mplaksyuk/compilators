@@ -4,7 +4,8 @@
 class Token {
    public:
         enum class Kind {
-            NUMBER,
+            INT,
+            FLOAT,
             STRING,       // "ABC" || 'ABC'
             CHARACTER,
             IDENTIFIER,
@@ -108,7 +109,9 @@ class Token {
 
         bool is(Kind kind) { return _kind == kind; }
 
-        std::string const &kind() const {
+        Kind kind() { return _kind; }
+
+        std::string const &kind_toString() const {
             return token_map.find(_kind)->second;; 
         }
         std::string const &lexeme() const { return _lexeme; }
@@ -118,7 +121,8 @@ class Token {
         std::string _lexeme{};
 
         std::map<Kind, std::string> token_map {
-            { Kind::NUMBER,            "NUMBER" },
+            { Kind::INT,               "INT" },
+            { Kind::FLOAT,             "FLOAT" },
             { Kind::STRING,            "STRING" },
             { Kind::CHARACTER,         "CHARACTER" },
             { Kind::IDENTIFIER,        "IDENTIFIER" },
