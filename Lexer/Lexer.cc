@@ -52,17 +52,92 @@ Token Lexer::number()
 {
     std::string lex;
 
-    while (is_number( peek() ) || peek() == '_')
+    bool point_touched = false;
+
+    while (is_number( peek() ) || peek() == '_' || peek() == '.')
     {
         if(peek() == '_') {
             get();
             continue;
         }
 
+        if(peek() == '.') {
+            if(!point_touched) {
+                lex += get();
+            }
+            else {
+                return Token(Token::Kind::UNEXPECTED_SYMBOL, lex);
+            }
+            point_touched = true;
+        }
+
         lex += get();
     } 
 
     return Token(Token::Kind::NUMBER, lex);
+}
+Token Lexer::character() 
+{
+    std::string lex{ get() }; // get ' char
+
+    if(peek() == '\\') {
+        lex += get();
+        switch (peek()) {
+            case 'n':
+            case 't':
+                lex += get();
+                break;
+
+            case 'x':
+            case 'e': {
+                int h = peek() == 'x' ? 2 : 3;
+
+                lex += get();
+                for(int i = 0; i < h; i++) {
+                    if(isxdigit(peek())) {
+                        lex += get();
+                    }
+                    else {
+                        return Token(Token::Kind::UNEXPECTED_SYMBOL, lex);
+                    }
+                }
+                break;
+            }
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7': {
+                for(int i = 0; i < 3; i++) {
+                    if(peek() >= '0' && peek() <= '7') {
+                        lex += get();
+                    }
+                    else {
+                        return Token(Token::Kind::UNEXPECTED_SYMBOL, lex);
+                    }
+                }
+
+                break;
+            }
+            default: 
+                lex += get();
+                break;
+        }
+    }
+    else {
+        lex += get();   
+    }
+
+    if(peek() != '\'') {
+        return Token(Token::Kind::UNEXPECTED_SYMBOL, lex);
+    }
+    lex += get();
+
+    return Token(Token::Kind::CHARACTER, lex);
+
 }
 
 Token Lexer::string()
@@ -75,6 +150,10 @@ Token Lexer::string()
     
     for (char curr_char = get(); curr_char != string_quote || prev_char == '\\'; curr_char = get())
     {
+        if(curr_char == '\xff') {
+            return Token(Token::Kind::UNEXPECTED_SYMBOL, lex);
+        }
+
         lex += curr_char;
         prev_char = curr_char;
     }
@@ -110,7 +189,7 @@ Token Lexer::identifier()
 {
     std::string lex;
 
-    for(char c = peek(); is_number(c) || is_letter(c) || c == '_'; c = peek() )
+    for(char c = peek(); is_number(c) || is_letter(c) || c == '_' || c == '\''; c = peek() )
     {
         lex += get();
     } 
@@ -149,7 +228,10 @@ Token Lexer::next()
     }
 
     switch (c) {
+        case '\xff':
+            return Token(Token::Kind::END, std::string{ get() }); 
         case '\'':
+            return character();
         case '\"':
             return string();
         case ';':
@@ -161,7 +243,7 @@ Token Lexer::next()
         case '|': // | or ||
             return token_if_next('|', Token::Kind::OR, Token::Kind::PIPE);
         case '&': // & or &&
-            return token_if_next('&', Token::Kind::AND, Token::Kind::UNEXPECTED);
+            return token_if_next('&', Token::Kind::AND, Token::Kind::UNEXPECTED_TOKEN);
         case '=': // = or ==
             return token_if_next('=', Token::Kind::DOUBLE_EQUAL, Token::Kind::EQUAL);
         case ')':
@@ -201,7 +283,7 @@ Token Lexer::next()
         case '^':
             return Token(Token::Kind::CARET, std::string{ get() });
         default:
-            return Token(Token::Kind::UNEXPECTED, std::string{ get() });
+            return Token(Token::Kind::UNEXPECTED_SYMBOL, std::string{ get() });
     } 
 
     return Token(Token::Kind::END, std::string{ get() });
