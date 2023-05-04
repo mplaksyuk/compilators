@@ -30,6 +30,7 @@ class Lexer {
         bool is_number(char);
 
         Token number();
+        Token character();
         Token string();
         Token left_paren_or_comment();
         Token identifier();
